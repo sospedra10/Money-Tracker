@@ -57,6 +57,18 @@ st.title("💰 Money Tracker App")
 # Initialize data
 initialize_data()
 
+# Sidebar: Add or update category totals
+st.sidebar.header("Update Category Total")
+selected_category = st.sidebar.selectbox("Category", categories)
+amount = st.sidebar.number_input("Total Amount", min_value=0.0, max_value=1e6, step=0.01, format="%.2f")
+if st.sidebar.button("Update"):
+    add_or_update_category(selected_category, amount)
+    st.sidebar.success(f"Updated {selected_category} total to {amount:.2f}")
+    st.rerun()
+
+st.sidebar.markdown("---")
+remuneration_account_pct = st.sidebar.number_input("Remuneration Account Percentage", min_value=0.0, max_value=100.0, step=0.01, value=3.0, format="%.2f") / 100.0
+
 # Main Metrics Section
 data = load_data()
 history_df = pd.DataFrame(data["history"])
@@ -72,21 +84,19 @@ if not history_df.empty:
         category_data = latest_totals[latest_totals["category"] == category]
         if not category_data.empty:
             amount = category_data.iloc[0]["amount"]
-            cols[i].metric(label=category, value=f"${amount:,.0f}")
+            if category == "Remuneration Account":
+                future_amount = amount * (1 - remuneration_account_pct)
+                cols[i].metric(label=category, value=f"${amount:,.0f}", delta=f"${amount - future_amount:,.0f}")
+            else:
+                cols[i].metric(label=category, value=f"${amount:,.0f}")
 else:
     st.metric(label="Total Amount", value="$0.00")
     cols = st.columns(len(categories))
     for i, category in enumerate(categories):
         cols[i].metric(label=category, value="$0.0")
 
-# Sidebar: Add or update category totals
-st.sidebar.header("Update Category Total")
-selected_category = st.sidebar.selectbox("Category", categories)
-amount = st.sidebar.number_input("Total Amount", min_value=0.0, max_value=1e6, step=0.01, format="%.2f")
-if st.sidebar.button("Update"):
-    add_or_update_category(selected_category, amount)
-    st.sidebar.success(f"Updated {selected_category} total to {amount:.2f}")
-    st.rerun()
+
+
 
 # Main Dashboard
 st.header("Dashboard")
@@ -134,6 +144,9 @@ if not history_df.empty:
             st.line_chart(category_data.set_index("date")["amount"], width=600, height=300)
 else:
     st.info("No data available yet. Update a category to get started.")
+
+
+
 
 st.sidebar.markdown("---")
 st.sidebar.caption("Track your financial growth over time!")
