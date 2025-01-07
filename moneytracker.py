@@ -68,7 +68,7 @@ if st.sidebar.button("Update"):
     st.rerun()
 
 st.sidebar.markdown("---")
-remuneration_account_pct = st.sidebar.number_input("Remuneration Account Percentage", min_value=0.0, max_value=100.0, step=0.01, value=3.0, format="%.2f") / 100.0
+remuneration_account_pct = st.sidebar.number_input("Remuneration Account Percentage", min_value=0.0, max_value=100.0, step=0.1, value=3.0, format="%.2f") / 100.0
 real_state_pct = st.sidebar.number_input("Real State Percentage", min_value=0.0, max_value=100.0, step=0.1, value=10.5, format="%.2f") / 100.0
 etf_pct = st.sidebar.number_input("ETF Percentage", min_value=0.0, max_value=100.0, step=0.1, value=6.5, format="%.2f") / 100.0
 
@@ -80,7 +80,13 @@ if not history_df.empty:
     history_df["date"] = pd.to_datetime(history_df["date"])
     latest_totals = calculate_latest_totals()
     total_amount = latest_totals["amount"].sum()
-    st.metric(label="Total Amount", value=f"${total_amount:,.0f}")
+
+    remun_account_income = latest_totals[latest_totals["category"] == "Remuneration Account"].iloc[0]["amount"] * remuneration_account_pct
+    real_state_income = latest_totals[latest_totals["category"] == "Real Estate"].iloc[0]["amount"] * real_state_pct
+    etf_income = latest_totals[latest_totals["category"] == "ETFs and Stocks"].iloc[0]["amount"] * etf_pct
+    income = remun_account_income + real_state_income + etf_income
+    st.metric(label="Total Amount", value=f"${total_amount:,.0f}", delta=f"${income/12:,.0f} (${income:,.0f})")
+    
 
     # Individual category metrics
     cols = st.columns(len(categories))
