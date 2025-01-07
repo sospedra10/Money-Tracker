@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import json
 from datetime import datetime
+import plotly.express as px
 
 # File to store financial data
 data_file = "financial_data.json"
@@ -68,6 +69,9 @@ if st.sidebar.button("Update"):
 
 st.sidebar.markdown("---")
 remuneration_account_pct = st.sidebar.number_input("Remuneration Account Percentage", min_value=0.0, max_value=100.0, step=0.01, value=3.0, format="%.2f") / 100.0
+real_state_pct = st.sidebar.number_input("Real State Percentage", min_value=0.0, max_value=100.0, step=0.1, value=10.5, format="%.2f") / 100.0
+etf_pct = st.sidebar.number_input("ETF Percentage", min_value=0.0, max_value=100.0, step=0.1, value=6.5, format="%.2f") / 100.0
+
 
 # Main Metrics Section
 data = load_data()
@@ -85,10 +89,17 @@ if not history_df.empty:
         if not category_data.empty:
             amount = category_data.iloc[0]["amount"]
             if category == "Remuneration Account":
-                future_amount = amount * (1 - remuneration_account_pct)
-                cols[i].metric(label=category, value=f"${amount:,.0f}", delta=f"${amount - future_amount:,.0f}")
+                income = amount * remuneration_account_pct
+                cols[i].metric(label=category, value=f"${amount:,.0f}", delta=f"${income/12:,.0f} (${income:,.0f})")
+            elif category == "Real Estate":
+                income = amount * real_state_pct
+                cols[i].metric(label=category, value=f"${amount:,.0f}", delta=f"${income/12:,.0f} (${income:,.0f})")
+            elif category == "ETFs and Stocks":
+                income = amount * etf_pct
+                cols[i].metric(label=category, value=f"${amount:,.0f}", delta=f"${income/12:,.0f} (${income:,.0f})")
             else:
                 cols[i].metric(label=category, value=f"${amount:,.0f}")
+            
 else:
     st.metric(label="Total Amount", value="$0.00")
     cols = st.columns(len(categories))
@@ -101,8 +112,8 @@ else:
 # Main Dashboard
 st.header("Dashboard")
 if not history_df.empty:
-    st.subheader("Transaction History")
-    st.dataframe(history_df)
+    # st.subheader("Transaction History")
+    # st.dataframe(history_df)
 
     st.subheader("Latest Category Totals")
     latest_totals_df = pd.DataFrame(latest_totals, columns=["category", "amount", "date"])
@@ -114,7 +125,7 @@ if not history_df.empty:
     # Get sum per category and date
     historical_amount_sum_each_last_category = history_df.groupby(["category", "date"])["amount"].sum().reset_index()
     historical_amount_sum_each_last_category = historical_amount_sum_each_last_category.sort_values("date")
-
+    
 
     # Create a DataFrame with both category-wise and total amounts
     chart_data = pd.DataFrame()
@@ -128,13 +139,31 @@ if not history_df.empty:
 
     # Calculate total sum across all categories per date
     total_by_date = history_df.groupby("date").sum().reset_index().sort_values("date")
+    
     # chart_data = chart_data.fillna(0)
     chart_data = chart_data.fillna(method='ffill').fillna(0)
 
     chart_data['Total'] = chart_data.sum(axis=1)
+    # Show expenses by day in boxplots
+    st.subheader("Expenses by Day")    
+    expenses_by_day = chart_data['Total'].diff().dropna().reset_index()
+    st.write(expenses_by_day)
+
+    # group by date by day
+    expenses_by_day['date'] = expenses_by_day['date'].astype(str).apply(lambda x: x[:10])
+    expenses_by_day = expenses_by_day.groupby('date')['Total'].sum().reset_index()
+    st.write(expenses_by_day)
+    expenses_by_day['date'] = pd.to_datetime(expenses_by_day['date'])
+
+    # Create bar plot of daily expenses
+    fig = px.bar(expenses_by_day, x='date', y='Total', title='Daily Expenses')
+    fig = px.line(expenses_by_day, x='date', y='Total', title='Daily Expenses')
+    st.plotly_chart(fig, use_container_width=True)
 
     # Create a line chart showing both category-wise and total amounts
-    st.line_chart(chart_data, width=600, height=300)
+    fig = px.line(chart_data, x=chart_data.index, y=chart_data.columns, title='Category-wise and Total Amounts Over Time')
+    st.plotly_chart(fig, use_container_width=True)
+    # st.line_chart(chart_data, width=600, height=300)
 
     st.subheader("Historical Data")
     for category in categories:
