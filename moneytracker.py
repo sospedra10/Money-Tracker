@@ -147,16 +147,13 @@ if not history_df.empty:
     # Show expenses by day in boxplots
     st.subheader("Expenses by Day")    
     expenses_by_day = chart_data['Total'].diff().dropna().reset_index()
-    st.write(expenses_by_day)
-
     # group by date by day
     expenses_by_day['date'] = expenses_by_day['date'].astype(str).apply(lambda x: x[:10])
     expenses_by_day = expenses_by_day.groupby('date')['Total'].sum().reset_index()
-    st.write(expenses_by_day)
     expenses_by_day['date'] = pd.to_datetime(expenses_by_day['date'])
 
     # Create bar plot of daily expenses
-    fig = px.bar(expenses_by_day, x='date', y='Total', title='Daily Expenses')
+    # fig = px.bar(expenses_by_day, x='date', y='Total', title='Daily Expenses')
     fig = px.line(expenses_by_day, x='date', y='Total', title='Daily Expenses')
     st.plotly_chart(fig, use_container_width=True)
 
