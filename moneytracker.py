@@ -124,9 +124,10 @@ if not history_df.empty:
     st.subheader("Latest Category Totals")
     latest_totals_df = pd.DataFrame(latest_totals, columns=["category", "amount", "date"])
     latest_totals_df.columns = ["Category", "Total Amount", "Last Updated"]
-    st.dataframe(latest_totals_df)
+    # st.dataframe(latest_totals_df)
 
-    st.bar_chart(latest_totals_df.set_index("Category")["Total Amount"])
+    fig = px.bar(latest_totals_df, x='Category', y='Total Amount', title='Totals', text='Total Amount')
+    st.plotly_chart(fig, use_container_width=True)
 
     # Get sum per category and date
     historical_amount_sum_each_last_category = history_df.groupby(["category", "date"])["amount"].sum().reset_index()
@@ -151,16 +152,18 @@ if not history_df.empty:
 
     chart_data['Total'] = chart_data.sum(axis=1)
     # Show expenses by day in boxplots
-    st.subheader("Expenses by Day")    
-    expenses_by_day = chart_data['Total'].diff().dropna().reset_index()
+    st.subheader("Expenses by Day")  
+    timeframe = st.selectbox("Timeframe", ["Day", "Month"])  
+    observe = st.selectbox("Observe", ["Total", "Remuneration Account", "Bank"])
+    expenses_by_day = chart_data[observe].diff().dropna().reset_index()
     # group by date by day
-    expenses_by_day['date'] = expenses_by_day['date'].astype(str).apply(lambda x: x[:10])
-    expenses_by_day = expenses_by_day.groupby('date')['Total'].sum().reset_index()
+    n = 10 if timeframe == "Day" else 7
+    expenses_by_day['date'] = expenses_by_day['date'].astype(str).apply(lambda x: x[:n])
+    expenses_by_day = expenses_by_day.groupby('date')[observe].sum().reset_index()
     expenses_by_day['date'] = pd.to_datetime(expenses_by_day['date'])
 
     # Create bar plot of daily expenses
-    # fig = px.bar(expenses_by_day, x='date', y='Total', title='Daily Expenses')
-    fig = px.line(expenses_by_day, x='date', y='Total', title='Daily Expenses')
+    fig = px.bar(expenses_by_day, x='date', y=observe, title='Daily Expenses', text=observe)
     st.plotly_chart(fig, use_container_width=True)
 
     # Create a line chart showing both category-wise and total amounts
