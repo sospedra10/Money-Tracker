@@ -1,0 +1,2 @@
+"""Money Tracker backend package."""
+
